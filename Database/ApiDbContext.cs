@@ -12,7 +12,7 @@ namespace Database
     {
         public ApiDbContext(DbContextOptions<ApiDbContext> options) : base(options)
         {
-            Database.EnsureDeleted();
+/*            Database.EnsureDeleted();*/
             Database.EnsureCreated();
         }
 

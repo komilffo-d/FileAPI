@@ -1,8 +1,10 @@
 ﻿using Database.Entities;
 using FileAPI.EntityDTO.File;
 using FileAPI.Misc;
+using FileAPI.Misc.Authentication;
 using FileAPI.Repositories.File;
 using FileAPI.Repositories.Token;
+using FileAPI.Repositories.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,27 +16,34 @@ namespace FileAPI.Controllers
     {
         private readonly FileRepository _fileRepository;
         private readonly TokenRepository _tokenRepository;
+        private readonly IUserRepository _userRepository;
         private const string nameZipFile = "template.zip";
         private static List<FileStream> _currentFiles = new List<FileStream>();
 
-        public FileController(FileRepository fileRepository, TokenRepository tokenRepository)
+        public FileController(FileRepository fileRepository, TokenRepository tokenRepository, IUserRepository userRepository)
         {
             _fileRepository = fileRepository;
             _tokenRepository = tokenRepository;
+            _userRepository = userRepository;
         }
 
+        [Authorize]
         [HttpGet("{id:int}", Name = nameof(GetFile), Order = 1)]
-        [AllowAnonymous]
         public async Task<ActionResult?> GetFile([FromRoute] int id)
         {
 
-            var fileName = (await _fileRepository.Get(f => f.Id == id))?.FileName;
-            var fileStream = await Tools.GetFile(fileName!);
+            var fileDb = await _fileRepository.Get(f => f.Id == id);
+            var fileStream = await Tools.GetFile(fileDb?.FileName!);
             if (fileStream is not null)
-                return File(fileStream!, MimeMapping.MimeUtility.GetMimeMapping(fileName), fileName);
+            {
+                var user = await _userRepository.CheckAuthorization(Request);
+                fileDb?.Users?.Add(user);
+                await _fileRepository.Update(fileDb!.Id, fileDb);
+                return File(fileStream!, MimeMapping.MimeUtility.GetMimeMapping(fileDb?.FileName), fileDb?.FileName);
+            }
+
             else
                 return NotFound();
-            return NotFound();
         }
         //TODO: Реализовать назначение прогресса по каждому загружаемому и скачиваемому файлу
         /*                FileSystemWatcher watcher;*/
@@ -75,6 +84,15 @@ namespace FileAPI.Controllers
                 {
                     tokenDb.Used = true;
                     await _tokenRepository.Update(tokenDb.Id, tokenDb);
+
+                    var userDb = await _userRepository.CheckAuthorization(Request);
+                    if (userDb is not null)
+                    {
+                        userDb?.Files?.AddRange(tokenDb?.Files!);
+                        await _userRepository.Update(userDb!.Id, userDb);
+                    }
+
+
                     return File(zip.stream, MimeMapping.MimeUtility.GetMimeMapping(zip.nameZip), zip.nameZip);
                 }
 
@@ -83,6 +101,22 @@ namespace FileAPI.Controllers
             }
             else
                 return NotFound();
+
+        }
+        [Authorize]
+        [HttpGet("history", Name = nameof(GetHistoryFiles), Order = 1)]
+        public async Task<ActionResult<List<FileDto>>?> GetHistoryFiles()
+        {
+
+
+            var user = await _userRepository.CheckAuthorization(Request);
+            if (user is null)
+                return BadRequest();
+
+            await _userRepository.LoadCollection(user, t => t.Files!);
+            if (user?.Files?.Count == 0)
+                return NotFound();
+            return user?.Files?.Select(f => f!.AsDto()).ToList()!;
 
         }
         //Лимит на загруженные файлы - 1 GiB (Гигибайт)

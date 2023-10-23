@@ -2,5 +2,5 @@
 
 namespace FileAPI.EntityDTO.File
 {
-    public record class FileDto(int id,IFormFile FileDetails, FileType FileType);
+    public record class FileDto(int id,string FileName, FileType FileType);
 }

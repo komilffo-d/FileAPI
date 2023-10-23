@@ -45,7 +45,7 @@ namespace FileAPI.Misc.Authentication
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
             var endpoint = Context.GetEndpoint();
-            if (endpoint.Metadata.GetMetadata<IAllowAnonymous>() != null)
+            if (endpoint is not null && endpoint.Metadata.GetMetadata<IAllowAnonymous>() != null)
                 return AuthenticateResult.NoResult();
             if (!Request.Headers.ContainsKey("Authorization"))
             {

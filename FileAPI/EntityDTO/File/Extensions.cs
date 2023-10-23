@@ -4,10 +4,10 @@ namespace FileAPI.EntityDTO.File
 {
     public static class Extensions
     {
-/*        public static FileDto AsDto(this FileDb fileDb)
+        public static FileDto AsDto(this FileDb fileDb)
         {
 
-            return new FileDto(fileDb.Id,)
-        }*/
+            return new FileDto(fileDb.Id, Path.GetFileName(fileDb.FileName), fileDb.FileType);
+        }
     }
 }
