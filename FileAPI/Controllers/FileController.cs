@@ -53,19 +53,20 @@ namespace FileAPI.Controllers
 
         [HttpGet("token", Name = nameof(GetFilesByToken), Order = 2)]
         [Authorize]
-        public async Task<ActionResult?> GetFilesByToken([FromBody] Guid? identity)
+        public async Task<ActionResult?> GetFilesByToken([FromQuery] Guid? identity)
         {
             if (identity is null || identity is not Guid)
                 return BadRequest();
             var tokenDb = await _tokenRepository.Get(t => t.TokenName.Equals(identity));
-            if (tokenDb is null || tokenDb.Used == false)
-                return BadRequest();
+            if (tokenDb is null || tokenDb.Used == true)
+                return BadRequest("Токен не существует или уже использован");
             if (DateTime.Now - tokenDb.timeStamp > new TimeSpan(0, 0, 0, 0, 0, 0))
             {
                 tokenDb.Used = true;
-                return NotFound();
+                return NotFound("Время действия токена прошло!");
             }
-            _tokenRepository.LoadCollection(tokenDb, t => t.Files!);
+
+            await _tokenRepository.LoadCollection(tokenDb, t => t.Files!);
             if (tokenDb?.Files?.Count > 0)
             {
                 string[] filesPath = tokenDb?.Files?.Select(f => f.FileName).ToArray()!;

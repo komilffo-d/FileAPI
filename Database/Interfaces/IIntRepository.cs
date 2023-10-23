@@ -14,7 +14,7 @@ namespace Database.Interfaces
         Task<TEntity> Create(TEntity entity);
         Task<TEntity> Update(int id, TEntity entity);
 
-        void LoadCollection(TEntity entity, Expression<Func<TEntity, IEnumerable<object>>> expression);
-        void LoadReference(TEntity entity, Expression<Func<TEntity, object>> expression);
+        Task LoadCollection(TEntity entity, Expression<Func<TEntity, IEnumerable<object>>> expression);
+        Task LoadReference(TEntity entity, Expression<Func<TEntity, object>> expression);
     }
 }

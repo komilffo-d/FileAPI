@@ -1,6 +1,5 @@
 ﻿using Database.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using System.Linq.Expressions;
 
 namespace Database
@@ -43,15 +42,17 @@ namespace Database
             return updated.Entity;
         }
 
-        public async void LoadCollection(TEntity entity, Expression<Func<TEntity, IEnumerable<object>>> expression)
+        public async Task LoadCollection(TEntity entity, Expression<Func<TEntity, IEnumerable<object>>> expression)
         {
-             _dbContext.Entry(entity).Collection(expression).Load();
+            _dbContext.Entry(entity).State = EntityState.Modified;
+            await _dbContext.Entry(entity).Collection(expression).LoadAsync();
 
         }
 
-        public async void LoadReference(TEntity entity, Expression<Func<TEntity, object>> expression)
+        public async Task LoadReference(TEntity entity, Expression<Func<TEntity, object>> expression)
         {
-            _dbContext.Entry(entity).Reference(expression).Load();
+            _dbContext.Entry(entity).State = EntityState.Modified;
+            await _dbContext.Entry(entity).Reference(expression).LoadAsync();
         }
     }
 }
