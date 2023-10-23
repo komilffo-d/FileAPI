@@ -18,8 +18,10 @@ namespace Database.Entities
         public string FileName { get; set; }
         [Column("file_type")]
         public FileType FileType { get; set; }
-
+        [Column("tokens")]
         public List<TokenDb>? Tokens { get; set; } = new List<TokenDb>();
+        [Column("users")]
+        public List<UserDb>? Users { get; set; } = new List<UserDb>();
 
     }
 }

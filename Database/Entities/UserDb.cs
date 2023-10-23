@@ -17,7 +17,11 @@ namespace Database.Entities
         [Required]
         [Column("password")]
         public string Password { get; set; } = null!;
-        [Column("token")]
+
+        [Column("tokens")]
         public List<TokenDb>? Tokens { get; set; } = new();
+
+        [Column("files")]
+        public List<FileDb>? Files { get; set; } = new();
     }
 }

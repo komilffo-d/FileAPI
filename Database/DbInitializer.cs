@@ -68,6 +68,14 @@ public class DbInitializer : IDbInitializer<ModelBuilder>
             x => x.HasOne<TokenDb>().WithMany().HasForeignKey("token_name"),
              x => x.HasOne<FileDb>().WithMany().HasForeignKey("file_id"),
              x => x.ToTable("filetoken"));
+
+        _modelBuilder.Entity<FileDb>()
+            .HasMany(f => f.Users)
+            .WithMany(t => t.Files)
+            .UsingEntity<Dictionary<string, string>>("fileuser",
+            x => x.HasOne<UserDb>().WithMany().HasForeignKey("user_id"),
+             x => x.HasOne<FileDb>().WithMany().HasForeignKey("file_id"),
+             x => x.ToTable("fileuser"));
         return this;
     }
 }
