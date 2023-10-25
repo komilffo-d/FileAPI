@@ -1,4 +1,9 @@
 ﻿using Ionic.Zip;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Http.Handlers;
+using System.Web.Http;
 
 namespace FileAPI.Misc
 {
@@ -89,6 +94,16 @@ namespace FileAPI.Misc
             }
             return null;
 
+        }
+        public static string GetUrl(HttpRequest request)
+        {
+            return $"{request.Scheme}://{request.Host}{request.Path}";
+        }
+        public static async Task<byte[]> GetBytes(IFormFile formFile)
+        {
+            await using var memoryStream = new MemoryStream();
+            await formFile.CopyToAsync(memoryStream);
+            return memoryStream.ToArray();
         }
     }
 }

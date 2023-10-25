@@ -1,4 +1,5 @@
 ﻿using Database.Entities;
+using Database.Enums;
 using FileAPI.EntityDTO.File;
 using FileAPI.Misc;
 using FileAPI.Misc.Authentication;
@@ -7,6 +8,8 @@ using FileAPI.Repositories.Token;
 using FileAPI.Repositories.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
+using static FileAPI.Misc.ProgressStream;
 
 namespace FileAPI.Controllers
 {
@@ -33,12 +36,24 @@ namespace FileAPI.Controllers
         {
 
             var fileDb = await _fileRepository.Get(f => f.Id == id);
+            if (fileDb is null)
+                return NotFound();
             var fileStream = await Tools.GetFile(fileDb?.FileName!);
             if (fileStream is not null)
             {
                 var user = await _userRepository.CheckAuthorization(Request);
                 fileDb?.Users?.Add(user);
                 await _fileRepository.Update(fileDb!.Id, fileDb);
+
+                /*                using (FileStream stream = new FileStream(Path.Combine(directory.FullName, fileUpload.FileDetails.FileName), FileMode.Create, FileAccess.Write))
+                                {*/
+                using (ProgressStream progressStream = new ProgressStream(fileStream))
+
+                progressStream.UpdateProgress += ProgressStream_UpdateProgress!;
+
+
+
+                /*                }*/
                 return File(fileStream!, MimeMapping.MimeUtility.GetMimeMapping(fileDb?.FileName), fileDb?.FileName);
             }
 
@@ -123,32 +138,47 @@ namespace FileAPI.Controllers
         [HttpPost(Name = "UploadFile", Order = 1)]
         [AllowAnonymous]
         [RequestSizeLimit(1_024_000_000)]
-        public async Task<ActionResult?> UploadFile([FromForm] List<FileUploadDto> filesUpload)
+        public async Task<ActionResult<List<FileDto>>?> UploadFile([FromForm] List<FileUploadDto> filesUpload)
         {
-
+            // TODO: Долелать поток прогресса для файла
             DirectoryInfo? directory = Tools.CreateRelativeDirectory("Files");
+            
             if (directory is not null && directory.Exists)
             {
-                filesUpload.ForEach(fileUpload =>
+                
+                List<FileDto> filesDto = new List<FileDto>();
+                foreach (var fileUpload in filesUpload)
                 {
-                    using (FileStream stream = new FileStream(Path.Combine(directory.FullName, fileUpload.FileDetails.FileName), FileMode.Create))
+
+                    using (FileStream stream = new FileStream(Path.Combine(directory.FullName, fileUpload.FileDetails.FileName), FileMode.Create, FileAccess.Write))
                     {
-                        fileUpload.FileDetails.CopyTo(stream);
-                        var created = _fileRepository.Create(new FileDb
+                        using (ProgressStream progressStream = new ProgressStream(fileUpload.FileDetails.OpenReadStream()))
                         {
-                            FileName = fileUpload.FileDetails.FileName,
-                            FileType = fileUpload.FileType
-                        });
+                            progressStream.UpdateProgress += ProgressStream_UpdateProgress!;
+                            progressStream.CopyTo(stream);
+                            var created = await _fileRepository.Create(new FileDb
+                            {
+                                FileName = Path.Combine(directory.Name, fileUpload.FileDetails.FileName),
+                                FileType = FileType.PDF,
+                            });
+
+                            filesDto.Add(new FileDto(created.Id, created.FileName, created.FileType));
+                        }
+
+
                     }
-                });
-
-
-                return Created("123", null);
+                }
+                return Created(Tools.GetUrl(Request), filesDto);
             }
 
             return null;
 
 
+        }
+        private void ProgressStream_UpdateProgress(object sender, ProgressEventArgs e)
+        {
+
+            Log.Debug($"Progress is {e.Progress * 100.0f}%");
         }
     }
 }

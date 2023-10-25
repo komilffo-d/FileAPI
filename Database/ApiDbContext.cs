@@ -12,7 +12,6 @@ namespace Database
     {
         public ApiDbContext(DbContextOptions<ApiDbContext> options) : base(options)
         {
-/*            Database.EnsureDeleted();*/
             Database.EnsureCreated();
         }
 
@@ -23,7 +22,6 @@ namespace Database
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             //TODO: Составной ключ для промежуточной таблицы от отношения Token
-            //TODO: Решить проблему отсутствия auto-increment в таблицах
             modelBuilder.UseIdentityColumns();
             new DbInitializer(modelBuilder).Seed().CreateThirdParty();
             base.OnModelCreating(modelBuilder);
