@@ -1,44 +1,28 @@
-﻿using System.Reflection;
-using System.Reflection.Emit;
+﻿using System.ComponentModel;
+using System.Reflection;
 
 namespace Database.Reflection
 {
-    //TODO: Создать динамически компилируемую библиотеку dll
-    internal static class Enum
+    public static class EnumReflection
     {
-/*        public static string? SetEnums<TType>(string nameEnum, List<String> keys, TType typeEnum) where TType : Type
+
+        public static string GetDescription<T>(this T eValue) where T : struct
         {
-            string[] upperKeys = keys.Select(key => key.ToUpper()).ToArray();
-            AppDomain currentDomain = AppDomain.CurrentDomain;
+            Type type = eValue.GetType();
+            if (!type.IsEnum)
+                throw new ArgumentException("Тип аргумента должен быть перечислением", eValue.ToString());
 
-
-            AssemblyName aName = new AssemblyName("TempAssembly");
-            AssemblyBuilder ab = currentDomain.DefineDynamicAssembly(
-                aName, AssemblyBuilderAccess.RunAndSave);
-
-
-            ModuleBuilder mb = ab.DefineDynamicModule(aName.Name, aName.Name + ".dll");
-
-
-            EnumBuilder eb = mb.DefineEnum(nameEnum, TypeAttributes.Public, typeEnum.GetType());
-
-            eb.DefineLiteral("Low", 0);
-            eb.DefineLiteral("High", 1);
-
-            // Create the type and save the assembly.
-            Type finished = eb.CreateType();
-            ab.Save(aName.Name + ".dll");
-            FieldInfo? suitField = type.GetField(nameEnum, BindingFlags.NonPublic | BindingFlags.Instance);
-            if (suitField != null)
+            MemberInfo[] memberInfo = type.GetMember(eValue.ToString());
+            if (memberInfo != null && memberInfo.Length > 0)
             {
-                return null;
-            }
-            foreach (var (index, key) in upperKeys.Select((index, key) => (index, key)))
-            {
-*//*                suitField.de
-                suitField.SetValue(key, index);*//*
-            }
+                object[] attrs = memberInfo[0].GetCustomAttributes(typeof(DescriptionAttribute), false);
 
-        }*/
+                if (attrs != null && attrs.Length > 0)
+                {
+                    return ((DescriptionAttribute)attrs[0]).Description;
+                }
+            }
+            return eValue.ToString();
+        }
     }
 }

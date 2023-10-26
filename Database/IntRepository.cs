@@ -1,4 +1,5 @@
 ﻿using Database.Interfaces;
+using Database.Mics;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -25,7 +26,7 @@ namespace Database
         public IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> filter, Expression<Func<TEntity, object>> sortBy,
     int? skip, int? take)
         {
-            return _dbContext.Set<TEntity>().AsNoTracking().Where(filter).OrderBy(sortBy);
+            return _dbContext.Set<TEntity>().AsNoTracking().Where(filter).OrderBy(sortBy).Skip(skip ?? DefaultValues.Skip).Take(take ?? DefaultValues.Take);
         }
 
         public async Task<TEntity> Create(TEntity entity)

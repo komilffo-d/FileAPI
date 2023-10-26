@@ -12,16 +12,16 @@ namespace Database
     {
         public ApiDbContext(DbContextOptions<ApiDbContext> options) : base(options)
         {
+/*            Database.EnsureDeleted();*/
             Database.EnsureCreated();
         }
 
         public DbSet<FileDb> Files { get; set; }
-        public DbSet<UserDb> Users { get; set; }
+        public DbSet<AccountDb> Users { get; set; }
         public DbSet<TokenDb> Tokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            //TODO: Составной ключ для промежуточной таблицы от отношения Token
             modelBuilder.UseIdentityColumns();
             new DbInitializer(modelBuilder).Seed().CreateThirdParty();
             base.OnModelCreating(modelBuilder);

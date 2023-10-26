@@ -1,5 +1,7 @@
 ﻿using Database.Entities;
-using FileAPI.Repositories.User;
+using Database.Enums;
+using Database.Reflection;
+using FileAPI.Repositories.Account;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
@@ -12,7 +14,7 @@ namespace FileAPI.Misc.Authentication
 {
     public static class Extensions
     {
-        public static async Task<UserDb?> CheckAuthorization(this IUserRepository userRepository,
+        public static async Task<AccountDb?> CheckAuthorization(this IAccountRepository accountRepository,
             HttpRequest request)
         {
             try
@@ -22,7 +24,7 @@ namespace FileAPI.Misc.Authentication
                 var credentials = Encoding.UTF8.GetString(credentialBytes).Split(new[] { ':' }, 2);
                 var username = credentials[0];
                 var password = credentials[1];
-                return await userRepository.Authenticate(username, password);
+                return await accountRepository.Authenticate(username, password);
             }
             catch
             {
@@ -32,15 +34,15 @@ namespace FileAPI.Misc.Authentication
     }
     public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
     {
-        private readonly IUserRepository _userRepository;
+        private readonly IAccountRepository _accountRepository;
         public BasicAuthenticationHandler(
             IOptionsMonitor<AuthenticationSchemeOptions> options,
             ILoggerFactory logger,
             UrlEncoder encoder,
             ISystemClock clock,
-            IUserRepository userRepository) : base(options, logger, encoder, clock)
+            IAccountRepository accountRepository) : base(options, logger, encoder, clock)
         {
-            _userRepository = userRepository;
+            _accountRepository = accountRepository;
         }
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
@@ -54,10 +56,10 @@ namespace FileAPI.Misc.Authentication
             try
             {
 
-                var user = await _userRepository.CheckAuthorization(Context.Request);
-                if (user != null)
+                var account = await _accountRepository.CheckAuthorization(Context.Request);
+                if (account != null)
                 {
-                    var claims = new[] { new Claim(ClaimTypes.Email, user.UserName) };
+                    var claims = new[] { new Claim(ClaimTypes.Email, account.Login), new Claim(ClaimTypes.Role, EnumReflection.GetDescription<Role>(account.Role)) };
                     var identity = new ClaimsIdentity(claims, Scheme.Name);
                     var principal = new ClaimsPrincipal(identity);
                     var ticket = new AuthenticationTicket(principal, Scheme.Name);

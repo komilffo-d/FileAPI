@@ -17,42 +17,19 @@ public class DbInitializer : IDbInitializer<ModelBuilder>
     public IDbInitializer<ModelBuilder> Seed()
     {
 
-        _modelBuilder.Entity<FileDb>().HasData(new FileDb[]
-        {
-                            new FileDb{
-                                Id=1,
-                                FileName=@"Files\123.pdf",
-                                FileType=FileType.PDF
-                            },
-                            new FileDb{
-                                Id=2,
-                                FileName=@"Files\456.docx",
-                                FileType=FileType.DOCX
-                            }
-        });
-        _modelBuilder.Entity<TokenDb>().HasData(new TokenDb[]
-        {
-                            new TokenDb{
-                                Id=1,
-                                TokenName=Guid.NewGuid(),
-
-                        },
-                            new TokenDb{
-                                Id=2,
-                                TokenName=Guid.NewGuid()
-                            }
-        });
-        _modelBuilder.Entity<UserDb>().HasData(new UserDb[]
+        _modelBuilder.Entity<AccountDb>().HasData(new AccountDb[]
             {
-                            new UserDb{
+                            new AccountDb{
                                 Id=1,
-                                UserName="admin",
-                                Password="admin"
+                                Login="admin",
+                                Password="admin",
+                                Role=Role.ADMIN
                             },
-                            new UserDb{
+                            new AccountDb{
                                 Id=2,
-                                UserName="user",
-                                Password="user"
+                                Login="user",
+                                Password="user",
+                                Role=Role.USER
                             }
             });
         return this;
@@ -65,17 +42,10 @@ public class DbInitializer : IDbInitializer<ModelBuilder>
             .HasMany(f => f.Tokens)
             .WithMany(t => t.Files)
             .UsingEntity<Dictionary<string, string>>("filetoken",
-            x => x.HasOne<TokenDb>().WithMany().HasForeignKey("token_name"),
+            x => x.HasOne<TokenDb>().WithMany().HasForeignKey("token_id","token_name"),
              x => x.HasOne<FileDb>().WithMany().HasForeignKey("file_id"),
              x => x.ToTable("filetoken"));
 
-        _modelBuilder.Entity<FileDb>()
-            .HasMany(f => f.Users)
-            .WithMany(t => t.Files)
-            .UsingEntity<Dictionary<string, string>>("fileuser",
-            x => x.HasOne<UserDb>().WithMany().HasForeignKey("user_id"),
-             x => x.HasOne<FileDb>().WithMany().HasForeignKey("file_id"),
-             x => x.ToTable("fileuser"));
         return this;
     }
 }

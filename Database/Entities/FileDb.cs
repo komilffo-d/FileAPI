@@ -1,27 +1,38 @@
-﻿using Database.Enums;
-using Database.Interfaces;
+﻿using Database.Interfaces;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Database.Entities
 {
-    [Table("files")]
+    [Table("file")]
     public class FileDb : IIntEntity
     {
 
         [Key]
         [Column("id")]
         public int Id { get; init; }
+
+        [Column("accountid")]
+        public int AccountId { get; set; }
+
         [Required]
         [Column("file_name")]
         public string FileName { get; set; }
+
+        [Required]
         [Column("file_type")]
-        public FileType FileType { get; set; }
+        public string FileType { get; set; }
+
+        [Required]
+        [Column("shared")]
+        public bool Shared { get; set; }
+
         [Column("tokens")]
-        public List<TokenDb>? Tokens { get; set; } = new List<TokenDb>();
-        [Column("users")]
-        public List<UserDb>? Users { get; set; } = new List<UserDb>();
+        public List<TokenDb> Tokens { get; set; } = new();
+
+
+        [Column("account")]
+        public AccountDb Account { get; set; } = null!;
 
     }
 }

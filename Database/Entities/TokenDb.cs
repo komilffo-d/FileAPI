@@ -1,12 +1,13 @@
 ﻿using Database.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Database.Entities
 {
-    //TODO: Сделать реализацию составного ключа для сущности Token (Primary Key и Order)
-    /*    [PrimaryKey(nameof(Id), nameof(TokenName))]*/
-    [Table("tokens")]
+
+    [PrimaryKey(nameof(Id), nameof(TokenName))]
+    [Table("token")]
     public class TokenDb : IIntEntity
     {
         [Key]
@@ -14,22 +15,26 @@ namespace Database.Entities
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; init; }
 
+        [Column("accountid")]
+        public int AccountId { get; set; }
+
+
         [Column("token_name")]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public Guid TokenName { get; set; }
         [Column("timestamp")]
-        public DateTime timeStamp { get; set; } = DateTime.UtcNow.AddDays(7);
+        public DateTime timeStamp { get; set; } = DateTime.UtcNow.AddDays(1);
 
         [Column("used")]
         public bool Used { get; set; } = false;
         [Column("files")]
-        public List<FileDb>? Files { get; set; } = new List<FileDb>();
+        public List<FileDb> Files { get; set; } = new();
 
 
-        [Column("userid")]
-        public int? UserId { get; set; }
-        [Column("user")]
-        public UserDb? User { get; set; }
+
+
+        [Column("account")]
+        public AccountDb Account { get; set; } = null!;
 
     }
 }

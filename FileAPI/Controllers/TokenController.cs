@@ -1,9 +1,9 @@
 ﻿using Database.Entities;
 using FileAPI.EntityDTO.Token;
 using FileAPI.Misc.Authentication;
+using FileAPI.Repositories.Account;
 using FileAPI.Repositories.File;
 using FileAPI.Repositories.Token;
-using FileAPI.Repositories.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,29 +15,35 @@ namespace FileAPI.Controllers
     {
         private readonly TokenRepository _tokenRepository;
         private readonly FileRepository _fileRepository;
-        private readonly IUserRepository _userRepository;
-        public TokenController(TokenRepository tokenRepository, FileRepository fileRepository, IUserRepository userRepository)
+        private readonly IAccountRepository _accountRepository;
+        public TokenController(TokenRepository tokenRepository, FileRepository fileRepository, IAccountRepository accountRepository)
         {
             _tokenRepository = tokenRepository;
             _fileRepository = fileRepository;
-            _userRepository = userRepository;
+            _accountRepository = accountRepository;
         }
 
         [Authorize]
         [HttpPost("")]
         public async Task<ActionResult<TokenDto>> createToken([FromBody] int[] idFiles)
         {
-            var user = await _userRepository.CheckAuthorization(Request);
+            var account = await _accountRepository.CheckAuthorization(Request);
             var created = await _tokenRepository.Create(new TokenDb
             {
                 TokenName = Guid.NewGuid(),
-                UserId = user?.Id,
+                AccountId = account!.Id,
+
             });
 
             var current = _fileRepository.GetAll(f => idFiles.Contains<int>(f.Id), f => f.Id, null, int.MaxValue);
+            if (current.Count() != idFiles.Length)
+                return NotFound("Файл(ов) с указанным(и) идектификатором(ами) не найден(о)!");
+
             created?.Files?.AddRange(current);
+
+
             await _tokenRepository.Update(created!.Id, created!);
-            return Created("Success", new TokenDto(created.Id, created.TokenName));
+            return Created("Токен успешно создан!", new TokenDto(created.Id, created.TokenName));
         }
     }
 }

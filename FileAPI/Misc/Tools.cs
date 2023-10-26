@@ -73,7 +73,11 @@ namespace FileAPI.Misc
                         FileInfo file = new FileInfo(Path.Combine(AppContext.BaseDirectory, relativeFilePath));
                         if (file.Exists)
                             zipArchive.AddFile(Path.Combine(AppContext.BaseDirectory, relativeFilePath), directory);
+                        else
+                            break;
                     }
+                    if (zipArchive.Count != filesPath.Length)
+                        return null;
                     if (zipArchive.Count > 0)
                     {
                         MemoryStream output = await Task.Run(() =>

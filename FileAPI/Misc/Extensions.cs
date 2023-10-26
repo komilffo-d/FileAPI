@@ -1,6 +1,6 @@
-﻿using FileAPI.Repositories.File;
+﻿using FileAPI.Repositories.Account;
+using FileAPI.Repositories.File;
 using FileAPI.Repositories.Token;
-using FileAPI.Repositories.User;
 
 namespace FileAPI.Misc
 {
@@ -8,9 +8,9 @@ namespace FileAPI.Misc
     {
         public static IServiceCollection AddScopes(this IServiceCollection services)
         {
-            services.AddScoped<FileRepository,FileRepository>();
+            services.AddScoped<FileRepository, FileRepository>();
             services.AddScoped<TokenRepository, TokenRepository>();
-            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IAccountRepository, AccountRepository>();
             return services;
         }
     }
