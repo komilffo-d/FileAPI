@@ -27,8 +27,14 @@ public class DbInitializer : IDbInitializer<ModelBuilder>
                             },
                             new AccountDb{
                                 Id=2,
-                                Login="user",
-                                Password="user",
+                                Login="user1",
+                                Password="user1",
+                                Role=Role.USER
+                            },
+                            new AccountDb{
+                                Id=3,
+                                Login="user2",
+                                Password="user2",
                                 Role=Role.USER
                             }
             });
@@ -42,7 +48,7 @@ public class DbInitializer : IDbInitializer<ModelBuilder>
             .HasMany(f => f.Tokens)
             .WithMany(t => t.Files)
             .UsingEntity<Dictionary<string, string>>("filetoken",
-            x => x.HasOne<TokenDb>().WithMany().HasForeignKey("token_id","token_name"),
+            x => x.HasOne<TokenDb>().WithMany().HasForeignKey("token_id", "token_name"),
              x => x.HasOne<FileDb>().WithMany().HasForeignKey("file_id"),
              x => x.ToTable("filetoken"));
 

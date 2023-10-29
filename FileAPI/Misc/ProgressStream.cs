@@ -37,7 +37,7 @@
         {
             int n = m_input.Read(buffer, offset, count);
             m_position += n;
-            UpdateProgress?.Invoke(this, new ProgressEventArgs((1.0f * m_position) / m_length));
+            UpdateProgress?.Invoke(this, new ProgressEventArgs(1.0f * n));
             return n;
         }
 

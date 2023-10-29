@@ -1,9 +1,4 @@
 ﻿using Ionic.Zip;
-using Newtonsoft.Json;
-using System.Collections.Generic;
-using System.Net;
-using System.Net.Http.Handlers;
-using System.Web.Http;
 
 namespace FileAPI.Misc
 {
@@ -17,6 +12,7 @@ namespace FileAPI.Misc
         /// <param name="relativePath"></param>
         public static DirectoryInfo? CreateRelativeDirectory(string relativePath)
         {
+
             if (!Path.IsPathRooted(relativePath))
             {
                 DirectoryInfo directory = new DirectoryInfo(Path.Combine(AppContext.BaseDirectory, relativePath));
@@ -62,22 +58,28 @@ namespace FileAPI.Misc
 
             public MemoryStream stream;
         }
-        public async static Task<TupleZip?> CreateZip(string[] filesPath, string nameArchive = "", string directory = "files")
+        public async static Task<TupleZip?> CreateZip(string[] filesPath, string nameArchive, string? password = null)
         {
             if (filesPath.Length > 0)
             {
                 using (ZipFile zipArchive = new ZipFile())
                 {
+                    zipArchive.AlternateEncoding = System.Text.Encoding.UTF8;
+                    zipArchive.AlternateEncodingUsage = ZipOption.AsNecessary;
+                    zipArchive.Password = password;
                     foreach (string relativeFilePath in filesPath)
                     {
                         FileInfo file = new FileInfo(Path.Combine(AppContext.BaseDirectory, relativeFilePath));
                         if (file.Exists)
-                            zipArchive.AddFile(Path.Combine(AppContext.BaseDirectory, relativeFilePath), directory);
+                            zipArchive.AddFile(Path.Combine(AppContext.BaseDirectory, relativeFilePath), String.Empty);
                         else
                             break;
                     }
                     if (zipArchive.Count != filesPath.Length)
                         return null;
+
+                    zipArchive.Comment = "Используйте пароль от учётной записи для получения доступа к архиву.";
+
                     if (zipArchive.Count > 0)
                     {
                         MemoryStream output = await Task.Run(() =>

@@ -1,9 +1,9 @@
 ﻿using System.Collections.Concurrent;
 
-namespace FileAPI.Misc.File
+namespace FileAPI.Services
 {
 
-    public class FileResultContainerService
+    public class FileProgressContainerService
     {
         private ConcurrentDictionary<Guid, double> fileResultDictionary = new ConcurrentDictionary<Guid, double>();
 

@@ -12,8 +12,6 @@ namespace Database.Enums
         [Description("admin")]
         ADMIN,
         [Description("user")]
-        USER,
-        [Description("moderator")]
-        MODERATOR
+        USER
     }
 }
