@@ -36,6 +36,7 @@ namespace Database
             return created.Entity;
         }
 
+
         public async Task<TEntity> Update(int id, TEntity entity)
         {
             var updated = _dbContext.Set<TEntity>().Update(entity);
@@ -45,15 +46,19 @@ namespace Database
 
         public async Task LoadCollection(TEntity entity, Expression<Func<TEntity, IEnumerable<object>>> expression)
         {
+
             _dbContext.Entry(entity).State = EntityState.Unchanged;
+
             await _dbContext.Entry(entity).Collection(expression).LoadAsync();
 
         }
-
+        
         public async Task LoadReference(TEntity entity, Expression<Func<TEntity, object>> expression)
         {
             _dbContext.Entry(entity).State = EntityState.Unchanged;
             await _dbContext.Entry(entity).Reference(expression).LoadAsync();
         }
+
+
     }
 }

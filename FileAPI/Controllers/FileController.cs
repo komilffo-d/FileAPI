@@ -4,15 +4,16 @@ using Database.Reflection;
 using FileAPI.EntityDTO.File;
 using FileAPI.Misc;
 using FileAPI.Misc.Authentication;
+using FileAPI.Misc.File;
 using FileAPI.Repositories.Account;
 using FileAPI.Repositories.File;
 using FileAPI.Repositories.Token;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Serilog;
-using System.Net;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
-using static FileAPI.Misc.ProgressStream;
 
 namespace FileAPI.Controllers
 {
@@ -23,6 +24,7 @@ namespace FileAPI.Controllers
         private readonly FileRepository _fileRepository;
         private readonly TokenRepository _tokenRepository;
         private readonly IAccountRepository _accountRepository;
+
         private const string nameZipFile = "template.zip";
         private static List<FileStream> _currentFiles = new List<FileStream>();
 
@@ -33,8 +35,11 @@ namespace FileAPI.Controllers
             _accountRepository = accountRepository;
         }
 
+        [ProducesResponseType(200)]
+        [ProducesResponseType(403)]
+        [ProducesResponseType(404)]
         [Authorize]
-        [HttpGet("{id:int}", Name = nameof(GetFile), Order = 1)]
+        [HttpGet("get/{id:int}", Name = nameof(GetFile), Order = 1)]
         public async Task<ActionResult?> GetFile([FromRoute] int id)
         {
 
@@ -42,34 +47,40 @@ namespace FileAPI.Controllers
             if (fileDb is null)
                 return NotFound("Такой файл не был загружен!");
             var fileStream = await Tools.GetFile(fileDb?.FileName!);
-            if (fileStream is null) 
-                return NotFound("Такой файл отсутсвует на сервере!");   
+            if (fileStream is null)
+                return NotFound("Такой файл отсутсвует на сервере!");
 
             var accountDb = await _accountRepository.CheckAuthorization(Request);
             await _fileRepository.LoadReference(fileDb!, f => f.Account);
             if (fileDb.Account.Id != accountDb.Id && !fileDb.Shared)
-                return BadRequest("У вас нет прав на получение этого файла!");
+                return Forbid();
 
             return File(fileStream!, MimeMapping.MimeUtility.GetMimeMapping(fileDb.FileName), fileDb.FileName);
         }
-        //TODO: Реализовать назначение прогресса по каждому загружаемому и скачиваемому файлу
 
-        [HttpGet(Name = nameof(GetFiles), Order = 1)]
-        [AllowAnonymous]
+        [HttpGet("get", Name = nameof(GetFiles), Order = 1)]
+        [Authorize]
         public async Task<ActionResult?> GetFiles([FromBody] int[] idFiles)
         {
-            var filesPath = _fileRepository.GetAll(f => idFiles.Contains<int>(f.Id), f => f.FileName, null, int.MaxValue);
-            if (filesPath.Count() != idFiles.Length)
+            var filesDb = _fileRepository.GetAll(f => idFiles.Contains<int>(f.Id), f => f.FileName, null, int.MaxValue).ToList();
+            var accountDb = await _accountRepository.CheckAuthorization(Request);
+            foreach (var fileDb in filesDb)
+            {
+                await _fileRepository.LoadReference(fileDb!, f => f.Account);
+                if (fileDb.Account.Id != accountDb.Id && !fileDb.Shared)
+                    return Forbid();
+            }
+            if (filesDb.Count() != idFiles.Length)
                 return NotFound("Файл(ов) с указанным(и) идектификатором(ами) не найден(о)!");
 
-            var zip = await Tools.CreateZip(filesPath.Select(f => f.FileName).ToArray(), nameZipFile);
+            var zip = await Tools.CreateZip(filesDb.Select(f => f.FileName).ToArray(), nameZipFile);
             if (zip is null)
                 return NotFound("Файлы отсутствуют на сервере!");
             return File(zip.stream, MimeMapping.MimeUtility.GetMimeMapping(zip.nameZip), zip.nameZip);
         }
 
 
-        [HttpGet("token", Name = nameof(GetFilesByToken), Order = 2)]
+        [HttpGet("get/token", Name = nameof(GetFilesByToken), Order = 2)]
         [Authorize]
         public async Task<ActionResult> GetFilesByToken([FromQuery] Guid? identity)
         {
@@ -77,7 +88,7 @@ namespace FileAPI.Controllers
                 return BadRequest("Неправильный формат токена!");
             var tokenDb = await _tokenRepository.Get(t => t.TokenName.Equals(identity));
             if (tokenDb is null || tokenDb.Used == true)
-                return BadRequest("Токен не существует или уже использован");
+                return NotFound("Токен не существует или уже использован");
             if (DateTime.Now.ToUniversalTime() - tokenDb.timeStamp > new TimeSpan(0, 0, 0, 0, 0, 0))
             {
                 tokenDb.Used = true;
@@ -95,8 +106,6 @@ namespace FileAPI.Controllers
                     tokenDb.Used = true;
                     await _tokenRepository.Update(tokenDb.Id, tokenDb);
 
-
-
                     return File(zip.stream, MimeMapping.MimeUtility.GetMimeMapping(zip.nameZip), zip.nameZip);
                 }
 
@@ -108,7 +117,7 @@ namespace FileAPI.Controllers
 
         }
         [Authorize]
-        [HttpGet("history", Name = nameof(GetHistoryFiles), Order = 1)]
+        [HttpGet("get/history", Name = nameof(GetHistoryFiles), Order = 1)]
         public async Task<ActionResult<List<FileDto>>> GetHistoryFiles()
         {
 
@@ -120,49 +129,64 @@ namespace FileAPI.Controllers
             return account?.Files?.Select(f => f!.AsDto()).ToList()!;
 
         }
+        [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+        public class DisableFormValueModelBindingAttribute : Attribute, IResourceFilter
+        {
+            public void OnResourceExecuting(ResourceExecutingContext context)
+            {
+                var factories = context.ValueProviderFactories;
+
+                factories.RemoveType<FormValueProviderFactory>();
+                factories.RemoveType<FormFileValueProviderFactory>();
+                factories.RemoveType<JQueryFormValueProviderFactory>();
+            }
+            public void OnResourceExecuted(ResourceExecutedContext context)
+            {
+            }
+        }
         //Лимит на загруженные файлы - 1 GiB (Гигибайт)
-        [HttpPost(Name = "UploadFile", Order = 1)]
+        [HttpPost("upload", Name = "UploadFile", Order = 1)]
         [Authorize]
         [RequestSizeLimit(1_024_000_000)]
-        public async Task<ActionResult<List<FileDto>>?> UploadFile([FromForm] IFormFileCollection filesUpload)
+        [DisableFormValueModelBinding]
+        public async Task<ActionResult<List<FileDto>>?> UploadFile([Required][FromQuery] Guid queueIdentity, [FromServices] FileUploadService fileService)
         {
-            // TODO: Долелать поток прогресса для файла
-            var directory = Tools.CreateRelativeDirectory("Files");
-            var filesDto = new List<FileDto>();
             var accountDb = await _accountRepository.CheckAuthorization(Request);
-            foreach (var fileUpload in filesUpload)
+            var fileUploadSummary = await fileService.UploadFileAsync(HttpContext.Request.Body, Request.ContentType, HttpContext.Request.ContentLength ?? 0, "Files", queueIdentity);
+            var filesDb = fileUploadSummary.AsParallel().Select(fname =>
             {
-                var client = new WebClient();
-               
-                using (FileStream stream = new FileStream(Path.Combine(directory.FullName, fileUpload.FileName), FileMode.Create, FileAccess.Write))
+                return new FileDb
                 {
-                    using (ProgressStream progressStream = new ProgressStream(fileUpload.OpenReadStream()))
-                    {
-                        progressStream.UpdateProgress += UpdateProgress!;
-                        progressStream.CopyTo(stream);
-                        var created = await _fileRepository.Create(new FileDb
-                        {
-                            FileName = Path.Combine(directory.Name, fileUpload.FileName),
-                            FileType = MimeMapping.MimeUtility.GetMimeMapping(fileUpload.FileName),
-                            AccountId = accountDb!.Id,
-                            Shared = Request.HttpContext.User.FindFirst(ClaimsIdentity.DefaultRoleClaimType).Value == EnumReflection.GetDescription<Role>(Role.ADMIN) ? true : false
-                        });
-
-                        filesDto.Add(new FileDto(created.Id, created.FileName, created.FileType));
-                    }
+                    FileName = fname,
+                    FileType = MimeMapping.MimeUtility.GetMimeMapping(fname),
+                    AccountId = accountDb!.Id,
+                    Shared = Request.HttpContext.User.FindFirst(ClaimsIdentity.DefaultRoleClaimType).Value == EnumReflection.GetDescription<Role>(Role.ADMIN) ? true : false
+                };
+            }).ToList();
+            filesDb.ForEach(f =>
+            {
+                _fileRepository.Create(f).Wait();
+            });
 
 
-                }
-            }
 
-            return Created(Tools.GetUrl(Request), filesDto);
+            return Created(Tools.GetUrl(Request), filesDb.AsParallel().Select(f => new FileDto(f.Id, f.FileName, f.FileType)).ToList());
 
 
         }
-        private void UpdateProgress(object sender, ProgressEventArgs e)
+        [HttpGet]
+        [Route("progress")]
+        public async Task<IActionResult> GetProgressFile([Required][FromQuery] Guid ququeIdentity, [FromServices] FileResultContainerService _fileService)
         {
-
-            Log.Debug($"Progress is {e.Progress * 100.0f}%");
+            /*            var result = rabbitMQService.ReceiveMessage(ququeIdentity.ToString());
+                        return _consumerService.ReadMessgaes();*/
+            var percent = _fileService.Read(ququeIdentity);
+            if (percent is not null)
+                return Ok($"Файл загружен на {percent} %");
+            else
+                return NoContent();
         }
+
+
     }
 }

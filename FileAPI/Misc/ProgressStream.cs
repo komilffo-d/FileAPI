@@ -1,6 +1,4 @@
-﻿using Serilog;
-
-namespace FileAPI.Misc
+﻿namespace FileAPI.Misc
 {
     public class ProgressStream : Stream
     {
@@ -28,7 +26,13 @@ namespace FileAPI.Misc
         {
             throw new System.NotImplementedException();
         }
-
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            int n = await m_input.ReadAsync(buffer, offset, count, cancellationToken);
+            m_position += n;
+            UpdateProgress?.Invoke(this, new ProgressEventArgs(1.0f * n));
+            return n;
+        }
         public override int Read(byte[] buffer, int offset, int count)
         {
             int n = m_input.Read(buffer, offset, count);

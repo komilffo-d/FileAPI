@@ -12,9 +12,13 @@ namespace Database.Interfaces
     int? skip, int? take);
 
         Task<TEntity> Create(TEntity entity);
+
+
         Task<TEntity> Update(int id, TEntity entity);
 
         Task LoadCollection(TEntity entity, Expression<Func<TEntity, IEnumerable<object>>> expression);
+
+
         Task LoadReference(TEntity entity, Expression<Func<TEntity, object>> expression);
     }
 }

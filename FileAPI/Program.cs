@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Serialization;
 using Serilog;
 
 namespace FileAPI
@@ -21,9 +22,9 @@ namespace FileAPI
                 .WriteTo.File("Logs/LogMain.txt", rollingInterval: RollingInterval.Minute)
                 .CreateLogger();
             builder.Services.AddCors();
-            /*            builder.Services.AddControllersWithViews()
-                            .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore)
-                            .AddNewtonsoftJson(options => options.SerializerSettings.ContractResolver = new DefaultContractResolver());*/
+/*            builder.Services.AddControllersWithViews()
+                .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore)
+                .AddNewtonsoftJson(options => options.SerializerSettings.ContractResolver = new DefaultContractResolver());*/
 
 
             builder.Services.AddControllers();
@@ -37,10 +38,13 @@ namespace FileAPI
             /*Лимит на загруженные файлы - 1 GiB (Гигибайт)*/
             builder.Services.Configure<IISServerOptions>(options =>
             {
+                
                 options.MaxRequestBodySize = 1_024_000_000;
             });
             builder.Services.Configure<KestrelServerOptions>(options =>
             {
+                
+                options.Limits.MaxResponseBufferSize = null;
                 options.Limits.MaxRequestBodySize = 1_024_000_000;
             });
             builder.Services.Configure<FormOptions>(options =>

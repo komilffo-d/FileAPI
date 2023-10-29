@@ -24,26 +24,31 @@ namespace FileAPI.Controllers
         }
 
         [Authorize]
-        [HttpPost("")]
+        [HttpPost("create")]
         public async Task<ActionResult<TokenDto>> createToken([FromBody] int[] idFiles)
         {
-            var account = await _accountRepository.CheckAuthorization(Request);
+            var accountDb = await _accountRepository.CheckAuthorization(Request);
             var created = await _tokenRepository.Create(new TokenDb
             {
                 TokenName = Guid.NewGuid(),
-                AccountId = account!.Id,
+                AccountId = accountDb!.Id,
 
             });
 
-            var current = _fileRepository.GetAll(f => idFiles.Contains<int>(f.Id), f => f.Id, null, int.MaxValue);
-            if (current.Count() != idFiles.Length)
+            var filesDb = _fileRepository.GetAll(f => idFiles.Contains<int>(f.Id), f => f.Id, null, int.MaxValue).ToList();
+            if (filesDb.Count() != idFiles.Length)
                 return NotFound("Файл(ов) с указанным(и) идектификатором(ами) не найден(о)!");
-
-            created?.Files?.AddRange(current);
+            foreach (var fileDb in filesDb)
+            {
+                await _fileRepository.LoadReference(fileDb!, f => f.Account);
+                if (fileDb.Account.Id != accountDb.Id && !fileDb.Shared)
+                    return Forbid();
+            }
+            created?.Files?.AddRange(filesDb);
 
 
             await _tokenRepository.Update(created!.Id, created!);
-            return Created("Токен успешно создан!", new TokenDto(created.Id, created.TokenName));
+            return Created("", new TokenDto(created.Id, created.TokenName));
         }
     }
 }
