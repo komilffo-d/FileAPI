@@ -13,6 +13,12 @@ namespace FileAPI.Misc
             services.AddScoped<TokenRepository, TokenRepository>();
             services.AddScoped<IAccountRepository, AccountRepository>();
             services.AddScoped<FileUploadService, FileUploadService>();
+
+            return services;
+        }
+
+        public static IServiceCollection AddSingletons(this IServiceCollection services)
+        {
             services.AddSingleton<FileProgressContainerService, FileProgressContainerService>();
 
             return services;

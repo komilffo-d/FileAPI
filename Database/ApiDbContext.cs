@@ -12,7 +12,7 @@ namespace Database
     {
         public ApiDbContext(DbContextOptions<ApiDbContext> options) : base(options)
         {
-            Database.EnsureCreated();
+/*            Database.EnsureCreated();*/
         }
 
         public DbSet<FileDb> Files { get; set; }
@@ -22,7 +22,7 @@ namespace Database
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.UseIdentityColumns();
-            new DbInitializer(modelBuilder).Seed().CreateThirdParty();
+            new DbInitializer(modelBuilder).CreateThirdParty().Seed();
             base.OnModelCreating(modelBuilder);
         }
     }

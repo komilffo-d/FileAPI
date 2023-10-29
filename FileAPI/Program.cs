@@ -21,9 +21,6 @@ namespace FileAPI
                 .WriteTo.File("Logs/LogMain.txt", rollingInterval: RollingInterval.Minute)
                 .CreateLogger();
             builder.Services.AddCors();
-            /*            builder.Services.AddControllersWithViews()
-                            .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore)
-                            .AddNewtonsoftJson(options => options.SerializerSettings.ContractResolver = new DefaultContractResolver());*/
 
 
             builder.Services.AddControllers();
@@ -34,6 +31,7 @@ namespace FileAPI
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddScopes();
+            builder.Services.AddSingletons();
             /*Лимит на загруженные файлы - 1 GiB (Гигибайт)*/
             builder.Services.Configure<IISServerOptions>(options =>
             {
@@ -69,6 +67,17 @@ namespace FileAPI
 
 
             app.MapControllers();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+
+                var context = services.GetRequiredService<ApiDbContext>();
+                if (context.Database.GetPendingMigrations().Any())
+                {
+                    context.Database.Migrate();
+                }
+            }
 
             app.Run();
         }
