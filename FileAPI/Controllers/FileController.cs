@@ -89,9 +89,9 @@ namespace FileAPI.Controllers
         [ProducesResponseType(200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
-        [HttpGet("token", Name = nameof(GetFilesByToken), Order = 2)]
+        [HttpGet("token/{identity:guid}", Name = nameof(GetFilesByToken), Order = 2)]
         [Authorize]
-        public async Task<ActionResult> GetFilesByToken([FromQuery] Guid? identity)
+        public async Task<ActionResult> GetFilesByToken([FromRoute] Guid? identity)
         {
             if (identity is null || identity is not Guid)
                 return BadRequest("Неправильный формат токена!");
