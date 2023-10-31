@@ -12,8 +12,6 @@ namespace Database
     {
         public ApiDbContext(DbContextOptions<ApiDbContext> options) : base(options)
         {
-/*            Database.EnsureDeleted();*/
-            Database.EnsureCreated();
         }
 
         public DbSet<FileDb> Files { get; set; }
