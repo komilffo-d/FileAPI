@@ -1,6 +1,4 @@
 ﻿using Database.Entities;
-using Database.Enums;
-using Database.Reflection;
 using FileAPI.Repositories.Account;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -59,7 +57,7 @@ namespace FileAPI.Misc.Authentication
                 var account = await _accountRepository.CheckAuthorization(Context.Request);
                 if (account != null)
                 {
-                    var claims = new[] { new Claim(ClaimTypes.Email, account.Login), new Claim(ClaimTypes.Role, EnumReflection.GetDescription<Role>(account.Role)) };
+                    var claims = new[] { new Claim(ClaimTypes.Email, account.Login), new Claim(ClaimTypes.Role, account.Role.ToString()) };
                     var identity = new ClaimsIdentity(claims, Scheme.Name);
                     var principal = new ClaimsPrincipal(identity);
                     var ticket = new AuthenticationTicket(principal, Scheme.Name);

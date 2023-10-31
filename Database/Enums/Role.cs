@@ -9,9 +9,7 @@ namespace Database.Enums
 {
     public enum Role
     {
-        [Description("admin")]
         ADMIN,
-        [Description("user")]
         USER
     }
 }

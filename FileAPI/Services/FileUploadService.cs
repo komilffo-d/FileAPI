@@ -33,8 +33,6 @@ namespace FileAPI.Services
             var sectionForm = await multipartReader.ReadNextSectionAsync();
             var filesUpload = new List<string>();
 
-            using (var intervalProgressTimer = new Timer(new TimerCallback(LogProgress!), null, 0, 20))
-            {
                 while (sectionForm != null)
                 {
 
@@ -44,7 +42,7 @@ namespace FileAPI.Services
                     sectionForm = await multipartReader.ReadNextSectionAsync();
                 }
                 _fileService.Delete(_filesIdentity);
-            }
+
 
             return filesUpload;
         }
@@ -62,7 +60,6 @@ namespace FileAPI.Services
         {
 
             var filePathAbsolute = Path.Combine(_directory.FullName, fileSection.FileName);
-
             await using FileStream stream = new FileStream(filePathAbsolute, FileMode.Create, FileAccess.Write, FileShare.ReadWrite, 1024);
             await using ProgressStream progressStream = new ProgressStream(fileSection.FileStream!);
 
@@ -72,14 +69,9 @@ namespace FileAPI.Services
         }
         private void UpdateProgress(object sender, ProgressEventArgs e)
         {
-            _uploadBytes += e.Progress;
-        }
-
-        private void LogProgress(object obj)
-        {
+            _uploadBytes += e.Progress; 
             _fileService.Write(_filesIdentity, Math.Round(_uploadBytes / _sizeRequest * 100, MidpointRounding.ToPositiveInfinity));
-            Log.Information($"Progress is {Math.Round(_uploadBytes / _sizeRequest * 100, MidpointRounding.ToPositiveInfinity)}%");
-
         }
+
     }
 }

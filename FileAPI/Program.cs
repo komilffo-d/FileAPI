@@ -68,7 +68,7 @@ namespace FileAPI
 
             app.MapControllers();
 
-            using (var scope = app.Services.CreateScope())
+/*            using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
 
@@ -77,7 +77,7 @@ namespace FileAPI
                 {
                     context.Database.Migrate();
                 }
-            }
+            }*/
 
             app.Run();
         }

@@ -1,6 +1,5 @@
 ﻿using Database.Entities;
 using Database.Enums;
-using Database.Reflection;
 using FileAPI.EntityDTO.Token;
 using FileAPI.Misc.Authentication;
 using FileAPI.Repositories.Account;
@@ -37,7 +36,7 @@ namespace FileAPI.Controllers
             if (filesDb.Count() != idFiles.Length)
                 return NotFound("Файл(ов) с указанным(и) идектификатором(ами) не найден(о)!");
 
-            if (EnumReflection.GetDescription<Role>(accountDb.Role) != EnumReflection.GetDescription<Role>(Role.ADMIN))
+            if (accountDb.Role != Role.ADMIN)
                 foreach (var fileDb in filesDb)
                 {
                     await _fileRepository.LoadReference(fileDb!, f => f.Account);

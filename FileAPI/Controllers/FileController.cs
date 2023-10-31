@@ -1,6 +1,5 @@
 ﻿using Database.Entities;
 using Database.Enums;
-using Database.Reflection;
 using FileAPI.EntityDTO.File;
 using FileAPI.Misc;
 using FileAPI.Misc.Authentication;
@@ -24,12 +23,15 @@ namespace FileAPI.Controllers
         private readonly FileRepository _fileRepository;
         private readonly TokenRepository _tokenRepository;
         private readonly IAccountRepository _accountRepository;
-
-        public FileController(FileRepository fileRepository, TokenRepository tokenRepository, IAccountRepository accountRepository)
+        private readonly FileProgressContainerService _fileProgressService;
+        private readonly FileUploadService _fileUploadService;
+        public FileController(FileRepository fileRepository, TokenRepository tokenRepository, IAccountRepository accountRepository, FileProgressContainerService fileProgressService, FileUploadService fileUploadService)
         {
             _fileRepository = fileRepository;
             _tokenRepository = tokenRepository;
             _accountRepository = accountRepository;
+            _fileProgressService = fileProgressService;
+            _fileUploadService = fileUploadService;
         }
 
         [ProducesResponseType(200)]
@@ -48,7 +50,7 @@ namespace FileAPI.Controllers
                 return NotFound("Такой файл отсутсвует на сервере!");
 
             var accountDb = await _accountRepository.CheckAuthorization(Request);
-            if (EnumReflection.GetDescription<Role>(accountDb.Role) != EnumReflection.GetDescription<Role>(Role.ADMIN))
+            if (accountDb.Role != Role.ADMIN)
             {
                 await _fileRepository.LoadReference(fileDb!, f => f.Account);
                 if (fileDb.Account.Id != accountDb.Id && !fileDb.Shared)
@@ -71,7 +73,7 @@ namespace FileAPI.Controllers
 
             if (filesDb.Count() != idFiles.Length)
                 return NotFound("Файл(ов) с указанным(и) идектификатором(ами) не найден(о)!");
-            if (EnumReflection.GetDescription<Role>(accountDb.Role) != EnumReflection.GetDescription<Role>(Role.ADMIN))
+            if (accountDb.Role != Role.ADMIN)
                 foreach (var fileDb in filesDb)
                 {
                     await _fileRepository.LoadReference(fileDb!, f => f.Account);
@@ -149,11 +151,11 @@ namespace FileAPI.Controllers
         [Authorize]
         [RequestSizeLimit(1_024_000_000)]
         [DisableFormValueModelBinding]
-        public async Task<ActionResult<List<FileDto>>?> UploadFile([Required][FromQuery] Guid filesIdentity, [FromServices] FileUploadService fileService)
+        public async Task<ActionResult<List<FileDto>>?> UploadFile([Required][FromQuery] Guid filesIdentity)
         {
             var accountDb = await _accountRepository.CheckAuthorization(Request);
 
-            var fileUploadSummary = await fileService.UploadFileAsync(HttpContext.Request.Body, Request.ContentType, HttpContext.Request.ContentLength ?? 0, FileSettings.directoryDefault, filesIdentity);
+            var fileUploadSummary = await _fileUploadService.UploadFileAsync(HttpContext.Request.Body, Request.ContentType, HttpContext.Request.ContentLength ?? 0, FileSettings.directoryDefault, filesIdentity);
 
             if (fileUploadSummary.Count() == 0)
                 return NoContent();
@@ -165,7 +167,7 @@ namespace FileAPI.Controllers
                     FileName = fname,
                     FileType = MimeMapping.MimeUtility.GetMimeMapping(fname),
                     AccountId = accountDb!.Id,
-                    Shared = Request.HttpContext.User.FindFirst(ClaimsIdentity.DefaultRoleClaimType).Value == EnumReflection.GetDescription<Role>(Role.ADMIN) ? true : false
+                    Shared = Request.HttpContext.User.FindFirst(ClaimsIdentity.DefaultRoleClaimType).Value == Role.ADMIN.ToString()
                 };
             }).ToList();
 
@@ -185,9 +187,9 @@ namespace FileAPI.Controllers
         [HttpGet]
         [Authorize]
         [Route("progress")]
-        public async Task<IActionResult> GetProgressFile([Required][FromQuery] Guid filesIdentity, [FromServices] FileProgressContainerService _fileService)
+        public async Task<IActionResult> GetProgressFile([Required][FromQuery] Guid filesIdentity)
         {
-            var percent = _fileService.Read(filesIdentity);
+            var percent = _fileProgressService.Read(filesIdentity);
             if (percent is not null)
                 return Ok($"Файл загружен на {percent} %");
             else
